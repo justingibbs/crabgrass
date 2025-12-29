@@ -7,6 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from crabgrass.config import get_settings
 from crabgrass.database import init_schema, close_connection
+from crabgrass.syncs import register_all_syncs
+from crabgrass.concepts.user import UserActions
+from crabgrass.api import ideas_router, users_router
 
 
 @asynccontextmanager
@@ -19,6 +22,14 @@ async def lifespan(app: FastAPI):
     print("Starting Crabgrass API...")
     init_schema()
     print("Database schema initialized")
+
+    # Ensure mock users exist for demo
+    UserActions.ensure_mock_users_exist()
+    print("Mock users ready")
+
+    # Wire up synchronizations from registry
+    register_all_syncs()
+    print("Sync handlers registered")
 
     yield
 
@@ -75,9 +86,9 @@ def register_routes(app: FastAPI) -> None:
             "health": "/health",
         }
 
-    # TODO: Register API routers
-    # app.include_router(ideas_router, prefix="/api/ideas", tags=["ideas"])
-    # app.include_router(agent_router, prefix="/api/agent", tags=["agent"])
+    # Register API routers
+    app.include_router(ideas_router, prefix="/api/ideas", tags=["ideas"])
+    app.include_router(users_router, prefix="/api/users", tags=["users"])
 
 
 # Create the app instance
