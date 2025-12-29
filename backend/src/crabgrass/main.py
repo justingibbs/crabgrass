@@ -9,7 +9,8 @@ from crabgrass.config import get_settings
 from crabgrass.database import init_schema, close_connection
 from crabgrass.syncs import register_all_syncs
 from crabgrass.concepts.user import UserActions
-from crabgrass.api import ideas_router, users_router
+from crabgrass.api import ideas_router, users_router, agent_router
+from crabgrass.api.agui import get_agui_agent
 
 
 @asynccontextmanager
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
 
 def register_routes(app: FastAPI) -> None:
     """Register all API routes."""
+    from ag_ui_adk import add_adk_fastapi_endpoint
 
     @app.get("/health")
     async def health_check():
@@ -89,6 +91,11 @@ def register_routes(app: FastAPI) -> None:
     # Register API routers
     app.include_router(ideas_router, prefix="/api/ideas", tags=["ideas"])
     app.include_router(users_router, prefix="/api/users", tags=["users"])
+    app.include_router(agent_router, prefix="/api/agent", tags=["agent"])
+
+    # Register AG-UI protocol endpoint for CopilotKit integration
+    agui_agent = get_agui_agent()
+    add_adk_fastapi_endpoint(app, agui_agent, path="/agui")
 
 
 # Create the app instance
