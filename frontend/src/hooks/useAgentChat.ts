@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import type { Suggestion } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -25,6 +26,7 @@ interface UseAgentChatOptions {
   ideaId?: string | null;
   onIdeaCreated?: (ideaId: string) => void;
   onContextUpdate?: (context: IdeaContext) => void;
+  onSuggestion?: (suggestion: Suggestion) => void;
 }
 
 export function useAgentChat(options: UseAgentChatOptions = {}) {
@@ -149,6 +151,19 @@ export function useAgentChat(options: UseAgentChatOptions = {}) {
                   }
                 } catch {
                   // Ignore parse errors
+                }
+                break;
+
+              case "CUSTOM":
+                // Handle custom events like SUGGESTION
+                if (data.name === "SUGGESTION" && data.value && options.onSuggestion) {
+                  const suggestion: Suggestion = {
+                    suggestion_id: data.value.suggestion_id,
+                    field: data.value.field,
+                    content: data.value.content,
+                    reason: data.value.reason || "",
+                  };
+                  options.onSuggestion(suggestion);
                 }
                 break;
             }

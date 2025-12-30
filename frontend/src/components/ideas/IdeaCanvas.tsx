@@ -2,18 +2,34 @@
 
 import { useState } from "react";
 import { Plus, Trash2, Check, Circle, PlayCircle } from "lucide-react";
-import type { IdeaDetail, CoherentAction } from "@/lib/types";
+import type { IdeaDetail, CoherentAction, Suggestion } from "@/lib/types";
 import { api } from "@/lib/api";
 import { CanvasSection } from "./CanvasSection";
 import { cn } from "@/lib/utils";
+
+interface Suggestions {
+  summary?: Suggestion | null;
+  challenge?: Suggestion | null;
+  approach?: Suggestion | null;
+}
 
 interface IdeaCanvasProps {
   idea: IdeaDetail;
   onUpdate: () => void;
   className?: string;
+  suggestions?: Suggestions;
+  onAcceptSuggestion?: (field: Suggestion["field"]) => void;
+  onRejectSuggestion?: (field: Suggestion["field"]) => void;
 }
 
-export function IdeaCanvas({ idea, onUpdate, className }: IdeaCanvasProps) {
+export function IdeaCanvas({
+  idea,
+  onUpdate,
+  className,
+  suggestions,
+  onAcceptSuggestion,
+  onRejectSuggestion,
+}: IdeaCanvasProps) {
   const [newActionContent, setNewActionContent] = useState("");
   const [isAddingAction, setIsAddingAction] = useState(false);
 
@@ -80,6 +96,9 @@ export function IdeaCanvas({ idea, onUpdate, className }: IdeaCanvasProps) {
         content={idea.summary?.content || null}
         placeholder="What's the core idea? Describe it in a few sentences..."
         onSave={handleSaveSummary}
+        suggestion={suggestions?.summary}
+        onAcceptSuggestion={() => onAcceptSuggestion?.("summary")}
+        onRejectSuggestion={() => onRejectSuggestion?.("summary")}
       />
 
       <CanvasSection
@@ -87,6 +106,9 @@ export function IdeaCanvas({ idea, onUpdate, className }: IdeaCanvasProps) {
         content={idea.challenge?.content || null}
         placeholder="What problem does this solve? What opportunity does it address?"
         onSave={handleSaveChallenge}
+        suggestion={suggestions?.challenge}
+        onAcceptSuggestion={() => onAcceptSuggestion?.("challenge")}
+        onRejectSuggestion={() => onRejectSuggestion?.("challenge")}
       />
 
       <CanvasSection
@@ -94,6 +116,9 @@ export function IdeaCanvas({ idea, onUpdate, className }: IdeaCanvasProps) {
         content={idea.approach?.content || null}
         placeholder="How would you tackle this? What's your proposed solution?"
         onSave={handleSaveApproach}
+        suggestion={suggestions?.approach}
+        onAcceptSuggestion={() => onAcceptSuggestion?.("approach")}
+        onRejectSuggestion={() => onRejectSuggestion?.("approach")}
       />
 
       {/* Coherent Actions - special handling for list */}

@@ -7,7 +7,7 @@ sync handlers execute properly.
 
 from crabgrass.agents.idea_assistant import IdeaAssistantAgent, get_idea_assistant
 from crabgrass.agents.state import IdeaContext
-from crabgrass.agents.tools import save_idea, find_similar
+from crabgrass.agents.tools import save_idea, find_similar, propose_suggestion
 
 __all__ = [
     "IdeaAssistantAgent",
@@ -15,4 +15,5 @@ __all__ = [
     "IdeaContext",
     "save_idea",
     "find_similar",
+    "propose_suggestion",
 ]

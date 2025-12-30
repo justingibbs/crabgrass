@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Suggestion } from "@/lib/types";
 
 interface CanvasSectionProps {
   title: string;
@@ -10,6 +11,9 @@ interface CanvasSectionProps {
   placeholder: string;
   onSave: (content: string) => Promise<void>;
   isEditable?: boolean;
+  suggestion?: Suggestion | null;
+  onAcceptSuggestion?: () => void;
+  onRejectSuggestion?: () => void;
 }
 
 export function CanvasSection({
@@ -18,6 +22,9 @@ export function CanvasSection({
   placeholder,
   onSave,
   isEditable = true,
+  suggestion,
+  onAcceptSuggestion,
+  onRejectSuggestion,
 }: CanvasSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(content || "");
@@ -134,6 +141,45 @@ export function CanvasSection({
         <p className="text-xs text-muted-foreground mt-2">
           Press Cmd+Enter to save, Esc to cancel
         </p>
+      )}
+
+      {/* Suggestion display with Accept/Reject */}
+      {suggestion && !isEditing && (
+        <div
+          className="mt-3 border-2 border-yellow-300 bg-yellow-50 rounded-lg p-3"
+          data-testid="suggestion-box"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-yellow-600" />
+            <span className="text-sm font-medium text-yellow-800">
+              Suggested by AI
+            </span>
+          </div>
+          <p className="text-sm whitespace-pre-wrap mb-2">{suggestion.content}</p>
+          {suggestion.reason && (
+            <p className="text-xs text-yellow-700 mb-3">
+              Reason: {suggestion.reason}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onAcceptSuggestion}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              data-testid="accept-suggestion"
+            >
+              <Check className="w-3 h-3" />
+              Accept
+            </button>
+            <button
+              onClick={onRejectSuggestion}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+              data-testid="reject-suggestion"
+            >
+              <X className="w-3 h-3" />
+              Reject
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

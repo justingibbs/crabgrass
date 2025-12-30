@@ -25,6 +25,7 @@ from ag_ui.core.events import (
     ToolCallEndEvent,
     ToolCallResultEvent,
     StateSnapshotEvent,
+    CustomEvent,
 )
 from ag_ui.encoder import EventEncoder
 
@@ -234,6 +235,20 @@ async def stream_agent_response(
                 yield encoder.encode(
                     StateSnapshotEvent(
                         snapshot=event.get("context", context.to_dict()),
+                    )
+                )
+
+            elif event_type == "suggestion":
+                # Emit CustomEvent for suggestion proposals
+                yield encoder.encode(
+                    CustomEvent(
+                        name="SUGGESTION",
+                        value={
+                            "suggestion_id": event.get("suggestion_id"),
+                            "field": event.get("field"),
+                            "content": event.get("content"),
+                            "reason": event.get("reason", ""),
+                        },
                     )
                 )
 

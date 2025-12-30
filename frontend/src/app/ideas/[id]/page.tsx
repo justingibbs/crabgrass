@@ -7,8 +7,9 @@ import { ArrowLeft } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { IdeaCanvas } from "@/components/ideas/IdeaCanvas";
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { SimilarIdeasPanel } from "@/components/ideas/SimilarIdeasPanel";
 import { api } from "@/lib/api";
-import type { IdeaDetail } from "@/lib/types";
+import type { IdeaDetail, Suggestion } from "@/lib/types";
 
 export default function IdeaDetailPage() {
   const params = useParams();
@@ -17,6 +18,14 @@ export default function IdeaDetailPage() {
   const [idea, setIdea] = useState<IdeaDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [similarRefreshTrigger, setSimilarRefreshTrigger] = useState(0);
+
+  // Suggestions state - maps field to pending suggestion
+  const [suggestions, setSuggestions] = useState<{
+    summary?: Suggestion | null;
+    challenge?: Suggestion | null;
+    approach?: Suggestion | null;
+  }>({});
 
   const fetchIdea = useCallback(async () => {
     try {
@@ -29,6 +38,75 @@ export default function IdeaDetailPage() {
       setLoading(false);
     }
   }, [ideaId]);
+
+  // Handle content updates - refresh idea and trigger similar ideas refresh
+  const handleContentUpdate = useCallback(async () => {
+    await fetchIdea();
+    // Increment trigger to refresh similar ideas panel
+    setSimilarRefreshTrigger((prev) => prev + 1);
+  }, [fetchIdea]);
+
+  // Handle incoming suggestion from agent
+  const handleSuggestion = useCallback((suggestion: Suggestion) => {
+    setSuggestions((prev) => ({
+      ...prev,
+      [suggestion.field]: suggestion,
+    }));
+  }, []);
+
+  // Accept a suggestion - save it via API and clear from pending
+  const handleAcceptSuggestion = useCallback(
+    async (field: Suggestion["field"]) => {
+      const suggestion = suggestions[field];
+      if (!suggestion || !idea) return;
+
+      try {
+        // Save the suggestion content to the appropriate field
+        switch (field) {
+          case "summary":
+            if (idea.summary) {
+              await api.summaries.update(idea.id, suggestion.content);
+            } else {
+              await api.summaries.create(idea.id, suggestion.content);
+            }
+            break;
+          case "challenge":
+            if (idea.challenge) {
+              await api.challenges.update(idea.id, suggestion.content);
+            } else {
+              await api.challenges.create(idea.id, suggestion.content);
+            }
+            break;
+          case "approach":
+            if (idea.approach) {
+              await api.approaches.update(idea.id, suggestion.content);
+            } else {
+              await api.approaches.create(idea.id, suggestion.content);
+            }
+            break;
+        }
+
+        // Clear the suggestion and refresh
+        setSuggestions((prev) => ({
+          ...prev,
+          [field]: null,
+        }));
+        await fetchIdea();
+        setSimilarRefreshTrigger((prev) => prev + 1);
+      } catch (e) {
+        console.error("Failed to accept suggestion:", e);
+      }
+    },
+    [suggestions, idea, fetchIdea]
+  );
+
+  // Reject a suggestion - just clear it from pending
+  const handleRejectSuggestion = useCallback((field: Suggestion["field"]) => {
+    setSuggestions((prev) => ({
+      ...prev,
+      [field]: null,
+    }));
+  }, []);
 
   useEffect(() => {
     fetchIdea();
@@ -79,14 +157,26 @@ export default function IdeaDetailPage() {
             </Link>
             <StatusBadge status={idea.status} />
           </div>
-          <IdeaCanvas idea={idea} onUpdate={fetchIdea} />
+          <IdeaCanvas
+            idea={idea}
+            onUpdate={handleContentUpdate}
+            suggestions={suggestions}
+            onAcceptSuggestion={handleAcceptSuggestion}
+            onRejectSuggestion={handleRejectSuggestion}
+          />
         </div>
 
-        {/* Chat - 30% */}
+        {/* Chat + Similar Ideas - 30% */}
         <div className="w-[30%] flex flex-col">
           <ChatPanel
             className="flex-1"
-            instructions={`You are helping with an idea titled "${idea.title}". The user may want to refine the Summary, Challenge, Approach, or Coherent Actions. Guide them to improve their idea.`}
+            ideaId={ideaId}
+            onContextUpdate={() => handleContentUpdate()}
+            onSuggestion={handleSuggestion}
+          />
+          <SimilarIdeasPanel
+            ideaId={ideaId}
+            refreshTrigger={similarRefreshTrigger}
           />
         </div>
       </main>

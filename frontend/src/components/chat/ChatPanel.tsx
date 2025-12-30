@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { useAgentChat, type IdeaContext } from "@/hooks/useAgentChat";
 import { cn } from "@/lib/utils";
+import type { Suggestion } from "@/lib/types";
 
 interface ChatPanelProps {
   className?: string;
   ideaId?: string;
   onIdeaCreated?: (ideaId: string) => void;
   onContextUpdate?: (context: IdeaContext) => void;
+  onSuggestion?: (suggestion: Suggestion) => void;
 }
 
 export function ChatPanel({
@@ -17,6 +19,7 @@ export function ChatPanel({
   ideaId,
   onIdeaCreated,
   onContextUpdate,
+  onSuggestion,
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -26,6 +29,7 @@ export function ChatPanel({
     ideaId,
     onIdeaCreated,
     onContextUpdate,
+    onSuggestion,
   });
 
   // Auto-scroll to bottom on new messages

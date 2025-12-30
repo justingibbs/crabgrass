@@ -223,6 +223,79 @@ def find_similar(
         }
 
 
+def propose_suggestion(
+    idea_id: str,
+    field: str,
+    content: str,
+    reason: str = "",
+) -> dict:
+    """Propose a suggestion for an idea field without immediately saving it.
+
+    Use this tool when you want to suggest content for the user to review
+    before accepting. The suggestion will be shown to the user for approval.
+
+    Args:
+        idea_id: The ID of the idea this suggestion is for.
+        field: The field to suggest content for ("summary", "challenge", or "approach").
+        content: The suggested content.
+        reason: Optional explanation of why this content is being suggested.
+
+    Returns:
+        Dictionary with success status, suggestion_id, and the suggestion details.
+    """
+    import uuid
+
+    try:
+        if not idea_id or not idea_id.strip():
+            return {
+                "success": False,
+                "message": "idea_id is required",
+            }
+
+        valid_fields = ["summary", "challenge", "approach"]
+        if field not in valid_fields:
+            return {
+                "success": False,
+                "message": f"field must be one of: {', '.join(valid_fields)}",
+            }
+
+        if not content or not content.strip():
+            return {
+                "success": False,
+                "message": "content is required",
+            }
+
+        # Verify idea exists
+        idea = IdeaActions.get_by_id(idea_id)
+        if not idea:
+            return {
+                "success": False,
+                "message": f"Idea {idea_id} not found",
+            }
+
+        # Generate a unique suggestion ID
+        suggestion_id = f"sug-{uuid.uuid4().hex[:8]}"
+
+        logger.info(f"Proposed suggestion {suggestion_id} for {field} on idea {idea_id}")
+
+        return {
+            "success": True,
+            "suggestion_id": suggestion_id,
+            "idea_id": idea_id,
+            "field": field,
+            "content": content.strip(),
+            "reason": reason.strip() if reason else "",
+            "message": f"Suggestion proposed for {field}",
+        }
+
+    except Exception as e:
+        logger.error(f"Error proposing suggestion: {e}", exc_info=True)
+        return {
+            "success": False,
+            "message": f"Error proposing suggestion: {str(e)}",
+        }
+
+
 def add_action(
     idea_id: str,
     action: str,

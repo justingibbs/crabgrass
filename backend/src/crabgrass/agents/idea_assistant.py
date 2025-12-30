@@ -17,7 +17,7 @@ from google.genai import types
 
 from crabgrass.agents.state import IdeaContext
 from crabgrass.agents.prompts import format_system_prompt
-from crabgrass.agents.tools import save_idea, find_similar, add_action
+from crabgrass.agents.tools import save_idea, find_similar, add_action, propose_suggestion
 from crabgrass.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class IdeaAssistantAgent:
             model="gemini-2.0-flash",
             description="Helps users capture and structure their ideas",
             instruction=format_system_prompt("No idea captured yet."),
-            tools=[save_idea, find_similar, add_action],
+            tools=[save_idea, find_similar, add_action, propose_suggestion],
         )
 
         # Session service for conversation state
@@ -161,6 +161,17 @@ class IdeaAssistantAgent:
                                 yield {
                                     "type": "state_update",
                                     "context": context.to_dict(),
+                                }
+
+                        # Emit suggestion event if propose_suggestion was called
+                        if fr.name == "propose_suggestion" and isinstance(fr.response, dict):
+                            if fr.response.get("success"):
+                                yield {
+                                    "type": "suggestion",
+                                    "suggestion_id": fr.response.get("suggestion_id"),
+                                    "field": fr.response.get("field"),
+                                    "content": fr.response.get("content"),
+                                    "reason": fr.response.get("reason", ""),
                                 }
 
         except Exception as e:
