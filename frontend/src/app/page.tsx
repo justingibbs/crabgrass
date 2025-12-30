@@ -5,34 +5,43 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { IdeaList } from "@/components/ideas/IdeaList";
+import { ObjectivesList } from "@/components/objectives/ObjectivesList";
+import { SurfacedAlerts } from "@/components/notifications/SurfacedAlerts";
 import { api } from "@/lib/api";
-import type { IdeaListItem } from "@/lib/types";
+import type { IdeaListItem, User } from "@/lib/types";
 
 export default function HomePage() {
   const [ideas, setIdeas] = useState<IdeaListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    async function fetchIdeas() {
+    async function fetchData() {
       try {
-        const data = await api.ideas.list();
-        setIdeas(data);
+        const [ideasData, userData] = await Promise.all([
+          api.ideas.list(),
+          api.users.current(),
+        ]);
+        setIdeas(ideasData);
+        setCurrentUser(userData);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load ideas");
+        setError(e instanceof Error ? e.message : "Failed to load data");
       } finally {
         setLoading(false);
       }
     }
-    fetchIdeas();
+    fetchData();
   }, []);
 
+  const isSenior = currentUser?.role === "Senior";
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Your Ideas</h1>
+      <main className="flex-1 px-4 py-6">
+        {/* Action Buttons Row */}
+        <div className="max-w-7xl mx-auto mb-6 flex items-center justify-between">
           <Link
             href="/ideas/new"
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
@@ -40,21 +49,57 @@ export default function HomePage() {
             <Plus className="w-4 h-4" />
             New Idea
           </Link>
+
+          {isSenior && (
+            <Link
+              href="/objectives/new"
+              className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              New Objective
+            </Link>
+          )}
         </div>
 
+        {/* Loading State */}
         {loading && (
-          <div className="text-center py-8 text-muted-foreground">
-            Loading ideas...
+          <div className="max-w-7xl mx-auto text-center py-8 text-muted-foreground">
+            Loading...
           </div>
         )}
 
+        {/* Error State */}
         {error && (
-          <div className="text-center py-8 text-red-500">
+          <div className="max-w-7xl mx-auto text-center py-8 text-red-500">
             {error}
           </div>
         )}
 
-        {!loading && !error && <IdeaList ideas={ideas} />}
+        {/* 3-Column Layout */}
+        {!loading && !error && (
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Left Column: IDEAS */}
+            <div className="flex flex-col">
+              <h2 className="text-lg font-semibold mb-4">Ideas</h2>
+              <div className="flex-1 overflow-y-auto">
+                <IdeaList ideas={ideas} />
+              </div>
+            </div>
+
+            {/* Middle Column: OBJECTIVES */}
+            <div className="flex flex-col">
+              <h2 className="text-lg font-semibold mb-4">Objectives</h2>
+              <div className="flex-1 overflow-y-auto">
+                <ObjectivesList />
+              </div>
+            </div>
+
+            {/* Right Column: SURFACED ALERTS */}
+            <div className="flex flex-col">
+              <SurfacedAlerts />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

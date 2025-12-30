@@ -249,3 +249,79 @@ class NotificationActions:
             )
 
         return count
+
+    @staticmethod
+    def list_all(limit: int = 50) -> list["Notification"]:
+        """List all notifications (for demo purposes).
+
+        Returns notifications for all users, sorted by creation time descending.
+        """
+        rows = fetchall(
+            """
+            SELECT id, user_id, type, message, source_type, source_id, related_id, read, created_at
+            FROM notifications
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            [limit],
+        )
+
+        return [
+            Notification(
+                id=row[0],
+                user_id=row[1],
+                type=NotificationType(row[2]),
+                message=row[3],
+                source_type=row[4],
+                source_id=row[5],
+                related_id=row[6],
+                read=row[7],
+                created_at=row[8],
+            )
+            for row in rows
+        ]
+
+    @staticmethod
+    def list_since(since: datetime) -> list["Notification"]:
+        """List notifications created since a given time.
+
+        Used for SSE streaming to get new notifications.
+        """
+        rows = fetchall(
+            """
+            SELECT id, user_id, type, message, source_type, source_id, related_id, read, created_at
+            FROM notifications
+            WHERE created_at > ?
+            ORDER BY created_at ASC
+            """,
+            [since],
+        )
+
+        return [
+            Notification(
+                id=row[0],
+                user_id=row[1],
+                type=NotificationType(row[2]),
+                message=row[3],
+                source_type=row[4],
+                source_id=row[5],
+                related_id=row[6],
+                read=row[7],
+                created_at=row[8],
+            )
+            for row in rows
+        ]
+
+    @staticmethod
+    def clear_all() -> int:
+        """Clear all notifications (for demo reset).
+
+        Returns count of deleted notifications.
+        """
+        row = fetchone("SELECT COUNT(*) FROM notifications", [])
+        count = row[0] if row else 0
+
+        if count > 0:
+            execute("DELETE FROM notifications", [])
+
+        return count
