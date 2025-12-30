@@ -46,6 +46,19 @@ def _install_extensions(conn: duckdb.DuckDBPyConnection) -> None:
     conn.execute("INSTALL vss")
     conn.execute("LOAD vss")
 
+    # DuckPGQ extension for property graph queries
+    # Note: As of DuckDB 0.10+, this may be built-in or available via community extensions
+    try:
+        conn.execute("INSTALL duckpgq FROM community")
+        conn.execute("LOAD duckpgq")
+    except Exception:
+        # Fallback: try without FROM community (for different versions)
+        try:
+            conn.execute("LOAD duckpgq")
+        except Exception:
+            # DuckPGQ not available - graph queries will use SQL fallback
+            pass
+
 
 @contextmanager
 def get_cursor() -> Generator[duckdb.DuckDBPyConnection, None, None]:

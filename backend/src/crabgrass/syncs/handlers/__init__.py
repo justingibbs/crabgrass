@@ -36,6 +36,10 @@ from crabgrass.syncs.handlers.enqueue import (
     create_similarity_relationship,
     create_interest_relationship,
 )
+from crabgrass.syncs.handlers.graph import (
+    update_objective_hierarchy,
+    record_similarity_edge,
+)
 
 
 # Handler lookup by name - maps registry strings to functions
@@ -70,6 +74,9 @@ HANDLERS: dict[str, callable] = {
     # V2 handlers - Graph relationships
     "create_similarity_relationship": create_similarity_relationship,
     "create_interest_relationship": create_interest_relationship,
+    # V2 handlers - Graph edge maintenance
+    "update_objective_hierarchy": update_objective_hierarchy,
+    "record_similarity_edge": record_similarity_edge,
 }
 
 
@@ -117,4 +124,6 @@ __all__ = [
     # V2 - Graph
     "create_similarity_relationship",
     "create_interest_relationship",
+    "update_objective_hierarchy",
+    "record_similarity_edge",
 ]

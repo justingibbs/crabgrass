@@ -15,6 +15,7 @@ from crabgrass.api import (
     agent_router,
     objectives_router,
     notifications_router,
+    graph_router,
 )
 from crabgrass.agents import (
     get_orchestrator,
@@ -127,6 +128,7 @@ def register_routes(app: FastAPI) -> None:
     # V2 routers
     app.include_router(objectives_router, prefix="/api/objectives", tags=["objectives"])
     app.include_router(notifications_router, prefix="/api/notifications", tags=["notifications"])
+    app.include_router(graph_router, prefix="/api/graph", tags=["graph"])
 
 
 # Create the app instance

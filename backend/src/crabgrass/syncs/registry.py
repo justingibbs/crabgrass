@@ -82,10 +82,12 @@ SYNCHRONIZATIONS: dict[str, list[str]] = {
     # ─────────────────────────────────────────────────────────────────────────
     "objective.created": [
         "generate_objective_embedding",  # Sync: generate embedding for similarity
+        "update_objective_hierarchy",  # Sync: update graph hierarchy edges
         "enqueue_surfacing_objective_created",  # Async: notify parent watchers
     ],
     "objective.updated": [
         "generate_objective_embedding",  # Sync: regenerate embedding if description changed
+        "update_objective_hierarchy",  # Sync: update graph hierarchy if parent changed
         "enqueue_surfacing_objective_updated",  # Async: notify watchers
     ],
     "objective.retired": [
@@ -107,7 +109,8 @@ SYNCHRONIZATIONS: dict[str, list[str]] = {
     # Agent Processing Results (V2)
     # ─────────────────────────────────────────────────────────────────────────
     "agent.found_similarity": [
-        "create_similarity_relationship",  # Sync: create graph edge
+        "create_similarity_relationship",  # Sync: create graph relationship
+        "record_similarity_edge",  # Sync: record to graph edge tables
         "enqueue_surfacing_similarity",  # Async: notify users
     ],
     "agent.found_relevant_user": [

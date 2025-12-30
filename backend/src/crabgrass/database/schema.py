@@ -146,6 +146,45 @@ CREATE TABLE IF NOT EXISTS idea_objectives (
     linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (idea_id, objective_id)
 );
+
+-- =============================================================================
+-- GRAPH EDGE TABLES (for property graph queries)
+-- =============================================================================
+
+-- Similarity edges (populated by batch job from ConnectionAgent discoveries)
+CREATE TABLE IF NOT EXISTS graph_similar_ideas (
+    from_idea_id VARCHAR NOT NULL,
+    to_idea_id VARCHAR NOT NULL,
+    similarity_score FLOAT NOT NULL,
+    match_type VARCHAR NOT NULL,  -- 'summary', 'challenge', 'approach'
+    discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (from_idea_id, to_idea_id, match_type)
+);
+
+CREATE TABLE IF NOT EXISTS graph_similar_challenges (
+    from_challenge_id VARCHAR NOT NULL,
+    to_challenge_id VARCHAR NOT NULL,
+    similarity_score FLOAT NOT NULL,
+    discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (from_challenge_id, to_challenge_id)
+);
+
+CREATE TABLE IF NOT EXISTS graph_similar_approaches (
+    from_approach_id VARCHAR NOT NULL,
+    to_approach_id VARCHAR NOT NULL,
+    similarity_score FLOAT NOT NULL,
+    discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (from_approach_id, to_approach_id)
+);
+
+-- Objective hierarchy edges (materialized from parent_id for graph traversal)
+CREATE TABLE IF NOT EXISTS graph_objective_hierarchy (
+    parent_id VARCHAR NOT NULL,
+    child_id VARCHAR NOT NULL,
+    depth INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (parent_id, child_id)
+);
 """
 
 # SQL for creating vector similarity indexes
@@ -187,6 +226,25 @@ ON relationships (to_type, to_id);
 CREATE INDEX IF NOT EXISTS objectives_embedding_idx
 ON objectives USING HNSW (embedding)
 WITH (metric = 'cosine');
+
+-- Graph edge indexes (for efficient traversal)
+CREATE INDEX IF NOT EXISTS idx_graph_similar_ideas_from
+ON graph_similar_ideas (from_idea_id);
+
+CREATE INDEX IF NOT EXISTS idx_graph_similar_ideas_to
+ON graph_similar_ideas (to_idea_id);
+
+CREATE INDEX IF NOT EXISTS idx_graph_similar_challenges_from
+ON graph_similar_challenges (from_challenge_id);
+
+CREATE INDEX IF NOT EXISTS idx_graph_similar_approaches_from
+ON graph_similar_approaches (from_approach_id);
+
+CREATE INDEX IF NOT EXISTS idx_graph_objective_hierarchy_parent
+ON graph_objective_hierarchy (parent_id);
+
+CREATE INDEX IF NOT EXISTS idx_graph_objective_hierarchy_child
+ON graph_objective_hierarchy (child_id);
 """
 
 
@@ -231,6 +289,11 @@ def drop_all_tables() -> None:
     conn = get_connection()
 
     tables = [
+        # Graph edge tables (drop first)
+        "graph_similar_ideas",
+        "graph_similar_challenges",
+        "graph_similar_approaches",
+        "graph_objective_hierarchy",
         # V2 tables (drop first due to potential references)
         "idea_objectives",
         "watches",
