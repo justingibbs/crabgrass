@@ -9,7 +9,7 @@ from crabgrass.config import get_settings
 from crabgrass.database import init_schema, close_connection
 from crabgrass.syncs import register_all_syncs
 from crabgrass.concepts.user import UserActions
-from crabgrass.api import ideas_router, users_router
+from crabgrass.api import ideas_router, users_router, agent_router
 
 
 @asynccontextmanager
@@ -89,6 +89,7 @@ def register_routes(app: FastAPI) -> None:
     # Register API routers
     app.include_router(ideas_router, prefix="/api/ideas", tags=["ideas"])
     app.include_router(users_router, prefix="/api/users", tags=["users"])
+    app.include_router(agent_router, prefix="/api/agent", tags=["agent"])
 
 
 # Create the app instance

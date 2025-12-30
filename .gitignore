@@ -31,9 +31,9 @@ venv.bak/
 
 # Node.js / Next.js
 node_modules/
-/.next/
-/out/
-/build/
+.next/
+out/
+build/
 .npm
 *.log
 
