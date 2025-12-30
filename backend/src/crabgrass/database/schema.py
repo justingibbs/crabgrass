@@ -75,6 +75,77 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- =============================================================================
+-- V2 TABLES
+-- =============================================================================
+
+-- Objectives table
+CREATE TABLE IF NOT EXISTS objectives (
+    id VARCHAR PRIMARY KEY,
+    title VARCHAR NOT NULL,
+    description TEXT NOT NULL,
+    status VARCHAR NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Retired')),
+    author_id VARCHAR NOT NULL,
+    parent_id VARCHAR,
+    embedding FLOAT[768],
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id VARCHAR PRIMARY KEY,
+    user_id VARCHAR NOT NULL,
+    type VARCHAR NOT NULL,
+    message TEXT NOT NULL,
+    source_type VARCHAR NOT NULL,
+    source_id VARCHAR NOT NULL,
+    related_id VARCHAR,
+    read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Queue items table (async processing)
+CREATE TABLE IF NOT EXISTS queue_items (
+    id VARCHAR PRIMARY KEY,
+    queue VARCHAR NOT NULL,
+    payload JSON NOT NULL,
+    status VARCHAR NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP
+);
+
+-- Relationships table (agent-discovered connections)
+CREATE TABLE IF NOT EXISTS relationships (
+    id VARCHAR PRIMARY KEY,
+    from_type VARCHAR NOT NULL,
+    from_id VARCHAR NOT NULL,
+    to_type VARCHAR NOT NULL,
+    to_id VARCHAR NOT NULL,
+    relationship VARCHAR NOT NULL,
+    score FLOAT,
+    discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    discovered_by VARCHAR
+);
+
+-- Watches table (users watching ideas/objectives)
+CREATE TABLE IF NOT EXISTS watches (
+    user_id VARCHAR NOT NULL,
+    target_type VARCHAR NOT NULL,
+    target_id VARCHAR NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, target_type, target_id)
+);
+
+-- Idea-Objective links table
+CREATE TABLE IF NOT EXISTS idea_objectives (
+    idea_id VARCHAR NOT NULL,
+    objective_id VARCHAR NOT NULL,
+    linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (idea_id, objective_id)
+);
 """
 
 # SQL for creating vector similarity indexes
@@ -92,6 +163,29 @@ WITH (metric = 'cosine');
 
 CREATE INDEX IF NOT EXISTS approaches_embedding_idx
 ON approaches USING HNSW (embedding)
+WITH (metric = 'cosine');
+
+-- V2 Indexes
+
+-- Queue processing index (find pending items quickly)
+CREATE INDEX IF NOT EXISTS idx_queue_items_pending
+ON queue_items (queue, status, created_at)
+WHERE status = 'pending';
+
+-- Notifications index (user's unread notifications)
+CREATE INDEX IF NOT EXISTS idx_notifications_user
+ON notifications (user_id, read, created_at DESC);
+
+-- Relationships indexes (lookup by from/to)
+CREATE INDEX IF NOT EXISTS idx_relationships_from
+ON relationships (from_type, from_id);
+
+CREATE INDEX IF NOT EXISTS idx_relationships_to
+ON relationships (to_type, to_id);
+
+-- Objectives embedding index (for similarity search)
+CREATE INDEX IF NOT EXISTS objectives_embedding_idx
+ON objectives USING HNSW (embedding)
 WITH (metric = 'cosine');
 """
 
@@ -137,6 +231,14 @@ def drop_all_tables() -> None:
     conn = get_connection()
 
     tables = [
+        # V2 tables (drop first due to potential references)
+        "idea_objectives",
+        "watches",
+        "relationships",
+        "queue_items",
+        "notifications",
+        "objectives",
+        # V1 tables
         "sessions",
         "coherent_actions",
         "approaches",

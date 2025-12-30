@@ -26,11 +26,11 @@ class TestRegistryContracts:
         assert "summary.created" in SYNCHRONIZATIONS
         assert "generate_summary_embedding" in SYNCHRONIZATIONS["summary.created"]
 
-    def test_summary_updated_triggers_embedding_and_similarity(self):
-        """Contract: summary.updated → embedding + similarity"""
+    def test_summary_updated_triggers_embedding_and_connection_queue(self):
+        """Contract: summary.updated → embedding + enqueue for async processing"""
         handlers = SYNCHRONIZATIONS["summary.updated"]
         assert "generate_summary_embedding" in handlers
-        assert "find_similar_ideas" in handlers
+        assert "enqueue_connection" in handlers
 
     def test_challenge_created_triggers_embedding(self):
         """Contract: challenge.created → generate_challenge_embedding"""
@@ -52,10 +52,10 @@ class TestRegistryContracts:
         assert "approach.updated" in SYNCHRONIZATIONS
         assert "generate_approach_embedding" in SYNCHRONIZATIONS["approach.updated"]
 
-    def test_idea_created_triggers_similarity(self):
-        """Contract: idea.created → find_similar_ideas"""
+    def test_idea_created_triggers_connection_queue(self):
+        """Contract: idea.created → enqueue_connection for async processing"""
         assert "idea.created" in SYNCHRONIZATIONS
-        assert "find_similar_ideas" in SYNCHRONIZATIONS["idea.created"]
+        assert "enqueue_connection" in SYNCHRONIZATIONS["idea.created"]
 
     def test_session_started_triggers_logging(self):
         """Contract: session.started → log_session_start"""
@@ -66,6 +66,57 @@ class TestRegistryContracts:
         """Contract: session.ended → log_session_end"""
         assert "session.ended" in SYNCHRONIZATIONS
         assert "log_session_end" in SYNCHRONIZATIONS["session.ended"]
+
+    # V2 Contracts - Objectives
+    def test_objective_created_triggers_surfacing(self):
+        """Contract: objective.created → enqueue_surfacing_objective_created"""
+        assert "objective.created" in SYNCHRONIZATIONS
+        assert "enqueue_surfacing_objective_created" in SYNCHRONIZATIONS["objective.created"]
+
+    def test_objective_updated_triggers_surfacing(self):
+        """Contract: objective.updated → enqueue_surfacing_objective_updated"""
+        assert "objective.updated" in SYNCHRONIZATIONS
+        assert "enqueue_surfacing_objective_updated" in SYNCHRONIZATIONS["objective.updated"]
+
+    def test_objective_retired_triggers_surfacing_and_review(self):
+        """Contract: objective.retired → surfacing + objective review"""
+        handlers = SYNCHRONIZATIONS["objective.retired"]
+        assert "enqueue_surfacing_objective_retired" in handlers
+        assert "enqueue_objective_review" in handlers
+
+    # V2 Contracts - Idea Linking
+    def test_idea_linked_triggers_surfacing(self):
+        """Contract: idea.linked_to_objective → enqueue_surfacing_linked"""
+        assert "idea.linked_to_objective" in SYNCHRONIZATIONS
+        assert "enqueue_surfacing_linked" in SYNCHRONIZATIONS["idea.linked_to_objective"]
+
+    def test_idea_structure_added_removes_from_nurture(self):
+        """Contract: idea.structure_added → remove_from_nurture_queue"""
+        assert "idea.structure_added" in SYNCHRONIZATIONS
+        assert "remove_from_nurture_queue" in SYNCHRONIZATIONS["idea.structure_added"]
+
+    # V2 Contracts - Agent Signals
+    def test_agent_found_similarity_triggers_graph_and_surfacing(self):
+        """Contract: agent.found_similarity → graph + surfacing"""
+        handlers = SYNCHRONIZATIONS["agent.found_similarity"]
+        assert "create_similarity_relationship" in handlers
+        assert "enqueue_surfacing_similarity" in handlers
+
+    def test_agent_found_relevant_user_triggers_graph_and_surfacing(self):
+        """Contract: agent.found_relevant_user → graph + surfacing"""
+        handlers = SYNCHRONIZATIONS["agent.found_relevant_user"]
+        assert "create_interest_relationship" in handlers
+        assert "enqueue_surfacing_interest" in handlers
+
+    def test_agent_suggest_reconnection_triggers_surfacing(self):
+        """Contract: agent.suggest_reconnection → enqueue_surfacing_reconnection"""
+        assert "agent.suggest_reconnection" in SYNCHRONIZATIONS
+        assert "enqueue_surfacing_reconnection" in SYNCHRONIZATIONS["agent.suggest_reconnection"]
+
+    def test_agent_flag_orphan_triggers_surfacing(self):
+        """Contract: agent.flag_orphan → enqueue_surfacing_orphan"""
+        assert "agent.flag_orphan" in SYNCHRONIZATIONS
+        assert "enqueue_surfacing_orphan" in SYNCHRONIZATIONS["agent.flag_orphan"]
 
 
 class TestHandlerResolution:
@@ -127,12 +178,23 @@ class TestHandlerSignatures:
             params = list(sig.parameters.keys())
             assert "content" in params, f"Handler '{handler_name}' missing 'content' parameter"
 
-    def test_similarity_handler_requires_idea_id(self):
-        """Similarity handler needs 'idea_id' parameter."""
-        handler = get_handler("find_similar_ideas")
-        sig = inspect.signature(handler)
-        params = list(sig.parameters.keys())
-        assert "idea_id" in params
+    def test_enqueue_handlers_use_kwargs(self):
+        """V2 enqueue handlers accept idea_id via kwargs for flexibility."""
+        enqueue_handlers = [
+            "enqueue_connection",
+            "enqueue_nurture",
+            "enqueue_nurture_if_summary_only",
+            "enqueue_surfacing_linked",
+        ]
+        for handler_name in enqueue_handlers:
+            handler = get_handler(handler_name)
+            sig = inspect.signature(handler)
+            # V2 handlers use **kwargs to accept idea_id and other params
+            has_var_keyword = any(
+                p.kind == inspect.Parameter.VAR_KEYWORD
+                for p in sig.parameters.values()
+            )
+            assert has_var_keyword, f"Handler '{handler_name}' should accept **kwargs"
 
 
 class TestSignalDefinitions:
@@ -158,6 +220,16 @@ class TestSignalDefinitions:
             idea_created,
             session_started,
             session_ended,
+            # V2 signals
+            objective_created,
+            objective_updated,
+            objective_retired,
+            idea_linked_to_objective,
+            idea_structure_added,
+            agent_found_similarity,
+            agent_found_relevant_user,
+            agent_suggest_reconnection,
+            agent_flag_orphan,
         )
         # Just verify these imports work
         assert summary_created is not None
@@ -165,6 +237,16 @@ class TestSignalDefinitions:
         assert idea_created is not None
         assert session_started is not None
         assert session_ended is not None
+        # V2 signals
+        assert objective_created is not None
+        assert objective_updated is not None
+        assert objective_retired is not None
+        assert idea_linked_to_objective is not None
+        assert idea_structure_added is not None
+        assert agent_found_similarity is not None
+        assert agent_found_relevant_user is not None
+        assert agent_suggest_reconnection is not None
+        assert agent_flag_orphan is not None
 
 
 class TestRegistryStructure:

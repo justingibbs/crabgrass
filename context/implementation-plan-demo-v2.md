@@ -31,7 +31,7 @@ This document outlines the implementation plan for Crabgrass Demo v2. Building o
 │  │ + Notifs    │  │   (Chat)    │  │  (+ Ideas)  │  │   (Real-time)     │   │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └───────────────────┘   │
 └─────────────────────────────────┬───────────────────────────────────────────┘
-                                  │ HTTP / SSE / WebSocket
+                                  │ HTTP / SSE
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Backend / Agents                                   │

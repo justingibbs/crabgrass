@@ -10,6 +10,13 @@ from crabgrass.database import init_schema, close_connection
 from crabgrass.syncs import register_all_syncs
 from crabgrass.concepts.user import UserActions
 from crabgrass.api import ideas_router, users_router, agent_router
+from crabgrass.agents import (
+    get_orchestrator,
+    ConnectionAgent,
+    NurtureAgent,
+    SurfacingAgent,
+    ObjectiveAgent,
+)
 
 
 @asynccontextmanager
@@ -31,10 +38,24 @@ async def lifespan(app: FastAPI):
     register_all_syncs()
     print("Sync handlers registered")
 
+    # Start background agents (V2)
+    orchestrator = get_orchestrator()
+    orchestrator.register(ConnectionAgent())
+    orchestrator.register(NurtureAgent())
+    orchestrator.register(SurfacingAgent())
+    orchestrator.register(ObjectiveAgent())
+    await orchestrator.start(interval_seconds=5.0)
+    print("Background agents started")
+
     yield
 
     # Shutdown
     print("Shutting down Crabgrass API...")
+
+    # Stop background agents
+    await orchestrator.stop()
+    print("Background agents stopped")
+
     close_connection()
     print("Database connection closed")
 
@@ -74,7 +95,7 @@ def register_routes(app: FastAPI) -> None:
         return {
             "status": "healthy",
             "service": "crabgrass-api",
-            "version": "0.1.0",
+            "version": "0.2.0",
         }
 
     @app.get("/")
@@ -84,7 +105,14 @@ def register_routes(app: FastAPI) -> None:
             "message": "Welcome to Crabgrass API",
             "docs": "/docs",
             "health": "/health",
+            "agents": "/agents/status",
         }
+
+    @app.get("/agents/status", tags=["agents"])
+    async def agents_status():
+        """Get status of background agents and their queues."""
+        orchestrator = get_orchestrator()
+        return orchestrator.get_status()
 
     # Register API routers
     app.include_router(ideas_router, prefix="/api/ideas", tags=["ideas"])
