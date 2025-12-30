@@ -8,6 +8,7 @@ from crabgrass.syncs.handlers.embedding import (
     generate_summary_embedding,
     generate_challenge_embedding,
     generate_approach_embedding,
+    generate_objective_embedding,
 )
 from crabgrass.syncs.handlers.similarity import find_similar_ideas
 from crabgrass.syncs.handlers.logging import log_session_start, log_session_end
@@ -43,6 +44,7 @@ HANDLERS: dict[str, callable] = {
     "generate_summary_embedding": generate_summary_embedding,
     "generate_challenge_embedding": generate_challenge_embedding,
     "generate_approach_embedding": generate_approach_embedding,
+    "generate_objective_embedding": generate_objective_embedding,
     "find_similar_ideas": find_similar_ideas,
     "log_session_start": log_session_start,
     "log_session_end": log_session_end,
@@ -89,6 +91,7 @@ __all__ = [
     "generate_summary_embedding",
     "generate_challenge_embedding",
     "generate_approach_embedding",
+    "generate_objective_embedding",
     "find_similar_ideas",
     "log_session_start",
     "log_session_end",

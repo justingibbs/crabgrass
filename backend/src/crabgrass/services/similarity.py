@@ -14,9 +14,18 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SimilarIdea:
-    """Result of a similarity search."""
+    """Result of a similarity search for ideas."""
 
     idea_id: str
+    title: str
+    similarity: float
+
+
+@dataclass
+class SimilarObjective:
+    """Result of a similarity search for objectives."""
+
+    objective_id: str
     title: str
     similarity: float
 
@@ -211,4 +220,99 @@ class SimilarityService:
             embedding=embedding,
             limit=limit,
             exclude_idea_id=idea_id,
+        )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Objective Similarity (V2)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def find_similar_objectives(
+        self,
+        embedding: list[float],
+        limit: int = 5,
+        exclude_id: str | None = None,
+        active_only: bool = True,
+    ) -> list[SimilarObjective]:
+        """Find objectives with similar descriptions.
+
+        Args:
+            embedding: The embedding vector to compare against.
+            limit: Maximum number of results to return.
+            exclude_id: Optional objective ID to exclude from results.
+            active_only: If True, only return active objectives.
+
+        Returns:
+            List of SimilarObjective results sorted by similarity (highest first).
+        """
+        query = """
+        SELECT
+            o.id,
+            o.title,
+            1 - array_cosine_distance(o.embedding, ?::FLOAT[768]) as similarity
+        FROM objectives o
+        WHERE o.embedding IS NOT NULL
+        """
+        params = [embedding]
+
+        if active_only:
+            query += " AND o.status = 'Active'"
+
+        if exclude_id:
+            query += " AND o.id != ?"
+            params.append(exclude_id)
+
+        query += """
+        ORDER BY similarity DESC
+        LIMIT ?
+        """
+        params.append(limit)
+
+        rows = fetchall(query, params)
+        return [
+            SimilarObjective(objective_id=row[0], title=row[1], similarity=row[2])
+            for row in rows
+        ]
+
+    def find_similar_for_objective(
+        self,
+        objective_id: str,
+        limit: int = 5,
+    ) -> list[SimilarObjective]:
+        """Find objectives similar to a given objective.
+
+        Uses the objective's embedding if available, otherwise generates one.
+        Excludes the input objective from results.
+
+        Args:
+            objective_id: The ID of the objective to find similar objectives for.
+            limit: Maximum number of results to return.
+
+        Returns:
+            List of SimilarObjective results sorted by similarity (highest first).
+        """
+        # Get the objective's embedding
+        row = fetchone(
+            """
+            SELECT embedding, description FROM objectives WHERE id = ?
+            """,
+            [objective_id],
+        )
+
+        if not row:
+            logger.warning(f"No objective found with id {objective_id}")
+            return []
+
+        embedding, description = row
+
+        # If no embedding yet, generate one
+        if embedding is None:
+            if not description:
+                logger.warning(f"No description for objective {objective_id}")
+                return []
+            embedding = self.embedding_service.embed(description)
+
+        return self.find_similar_objectives(
+            embedding=embedding,
+            limit=limit,
+            exclude_id=objective_id,
         )

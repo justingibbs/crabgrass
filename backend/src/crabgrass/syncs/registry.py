@@ -81,9 +81,11 @@ SYNCHRONIZATIONS: dict[str, list[str]] = {
     # Objective Lifecycle (V2)
     # ─────────────────────────────────────────────────────────────────────────
     "objective.created": [
+        "generate_objective_embedding",  # Sync: generate embedding for similarity
         "enqueue_surfacing_objective_created",  # Async: notify parent watchers
     ],
     "objective.updated": [
+        "generate_objective_embedding",  # Sync: regenerate embedding if description changed
         "enqueue_surfacing_objective_updated",  # Async: notify watchers
     ],
     "objective.retired": [

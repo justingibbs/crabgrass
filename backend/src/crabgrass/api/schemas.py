@@ -182,3 +182,133 @@ class SimilarIdeaResponse(BaseModel):
     idea_id: str
     title: str
     similarity: float
+
+
+# =============================================================================
+# V2 SCHEMAS
+# =============================================================================
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Objective Schemas
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class ObjectiveCreate(BaseModel):
+    """Schema for creating an objective."""
+
+    title: str
+    description: str
+    parent_id: str | None = None
+
+
+class ObjectiveUpdate(BaseModel):
+    """Schema for updating an objective."""
+
+    title: str | None = None
+    description: str | None = None
+    parent_id: str | None = None
+
+
+class ObjectiveListItem(BaseModel):
+    """Schema for objective list item (summary view)."""
+
+    id: str
+    title: str
+    description: str
+    status: str
+    author_id: str
+    author_name: str
+    parent_id: str | None = None
+    idea_count: int = 0
+    created_at: datetime | None = None
+
+
+class ObjectiveDetail(BaseModel):
+    """Schema for full objective detail."""
+
+    id: str
+    title: str
+    description: str
+    status: str
+    author_id: str
+    author_name: str
+    parent_id: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    idea_count: int = 0
+    sub_objective_count: int = 0
+    is_watched: bool = False
+
+
+class SimilarObjectiveResponse(BaseModel):
+    """Schema for similar objective response."""
+
+    objective_id: str
+    title: str
+    similarity: float
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Idea-Objective Link Schemas
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class LinkIdeaRequest(BaseModel):
+    """Schema for linking an idea to an objective."""
+
+    idea_id: str
+
+
+class LinkedIdeaResponse(BaseModel):
+    """Schema for a linked idea in objective context."""
+
+    idea_id: str
+    title: str
+    status: str
+    linked_at: datetime | None = None
+
+
+class LinkedObjectiveResponse(BaseModel):
+    """Schema for a linked objective in idea context."""
+
+    objective_id: str
+    title: str
+    status: str
+    linked_at: datetime | None = None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Watch Schemas
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class WatchResponse(BaseModel):
+    """Schema for watch response."""
+
+    target_type: str
+    target_id: str
+    created_at: datetime | None = None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Notification Schemas
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class NotificationResponse(BaseModel):
+    """Schema for notification response."""
+
+    id: str
+    type: str
+    message: str
+    source_type: str
+    source_id: str
+    related_id: str | None = None
+    read: bool
+    created_at: datetime | None = None
+
+
+class NotificationCountResponse(BaseModel):
+    """Schema for notification count response."""
+
+    unread_count: int

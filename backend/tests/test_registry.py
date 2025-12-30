@@ -68,15 +68,17 @@ class TestRegistryContracts:
         assert "log_session_end" in SYNCHRONIZATIONS["session.ended"]
 
     # V2 Contracts - Objectives
-    def test_objective_created_triggers_surfacing(self):
-        """Contract: objective.created → enqueue_surfacing_objective_created"""
-        assert "objective.created" in SYNCHRONIZATIONS
-        assert "enqueue_surfacing_objective_created" in SYNCHRONIZATIONS["objective.created"]
+    def test_objective_created_triggers_embedding_and_surfacing(self):
+        """Contract: objective.created → embedding + surfacing"""
+        handlers = SYNCHRONIZATIONS["objective.created"]
+        assert "generate_objective_embedding" in handlers
+        assert "enqueue_surfacing_objective_created" in handlers
 
-    def test_objective_updated_triggers_surfacing(self):
-        """Contract: objective.updated → enqueue_surfacing_objective_updated"""
-        assert "objective.updated" in SYNCHRONIZATIONS
-        assert "enqueue_surfacing_objective_updated" in SYNCHRONIZATIONS["objective.updated"]
+    def test_objective_updated_triggers_embedding_and_surfacing(self):
+        """Contract: objective.updated → embedding + surfacing"""
+        handlers = SYNCHRONIZATIONS["objective.updated"]
+        assert "generate_objective_embedding" in handlers
+        assert "enqueue_surfacing_objective_updated" in handlers
 
     def test_objective_retired_triggers_surfacing_and_review(self):
         """Contract: objective.retired → surfacing + objective review"""

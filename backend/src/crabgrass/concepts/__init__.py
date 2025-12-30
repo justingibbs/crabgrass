@@ -19,6 +19,16 @@ from crabgrass.concepts.coherent_action import (
 from crabgrass.concepts.session import Session, SessionActions, Message, SessionStatus
 from crabgrass.concepts.queue import QueueItem, QueueActions, QueueName, QueueItemStatus
 
+# V2 Concepts
+from crabgrass.concepts.objective import Objective, ObjectiveActions, ObjectiveStatus
+from crabgrass.concepts.watch import Watch, WatchActions, WatchTargetType
+from crabgrass.concepts.idea_objective import IdeaObjective, IdeaObjectiveActions
+from crabgrass.concepts.notification import (
+    Notification,
+    NotificationActions,
+    NotificationType,
+)
+
 __all__ = [
     # User
     "User",
@@ -50,4 +60,19 @@ __all__ = [
     "QueueActions",
     "QueueName",
     "QueueItemStatus",
+    # V2: Objective
+    "Objective",
+    "ObjectiveActions",
+    "ObjectiveStatus",
+    # V2: Watch
+    "Watch",
+    "WatchActions",
+    "WatchTargetType",
+    # V2: IdeaObjective
+    "IdeaObjective",
+    "IdeaObjectiveActions",
+    # V2: Notification
+    "Notification",
+    "NotificationActions",
+    "NotificationType",
 ]

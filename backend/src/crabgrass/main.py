@@ -9,7 +9,13 @@ from crabgrass.config import get_settings
 from crabgrass.database import init_schema, close_connection
 from crabgrass.syncs import register_all_syncs
 from crabgrass.concepts.user import UserActions
-from crabgrass.api import ideas_router, users_router, agent_router
+from crabgrass.api import (
+    ideas_router,
+    users_router,
+    agent_router,
+    objectives_router,
+    notifications_router,
+)
 from crabgrass.agents import (
     get_orchestrator,
     ConnectionAgent,
@@ -118,6 +124,9 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(ideas_router, prefix="/api/ideas", tags=["ideas"])
     app.include_router(users_router, prefix="/api/users", tags=["users"])
     app.include_router(agent_router, prefix="/api/agent", tags=["agent"])
+    # V2 routers
+    app.include_router(objectives_router, prefix="/api/objectives", tags=["objectives"])
+    app.include_router(notifications_router, prefix="/api/notifications", tags=["notifications"])
 
 
 # Create the app instance

@@ -10,6 +10,18 @@ V2 adds background processing agents that consume from queues.
 from crabgrass.agents.idea_assistant import IdeaAssistantAgent, get_idea_assistant
 from crabgrass.agents.state import IdeaContext
 from crabgrass.agents.tools import save_idea, find_similar, propose_suggestion
+from crabgrass.agents.objective_assistant import (
+    ObjectiveAssistantAgent,
+    get_objective_assistant,
+    ObjectiveContext,
+)
+from crabgrass.agents.objective_tools import (
+    save_objective,
+    list_objectives,
+    find_similar_objectives,
+    get_sub_objectives,
+    retire_objective,
+)
 from crabgrass.agents.runner import (
     BackgroundAgent,
     AgentOrchestrator,
@@ -23,13 +35,22 @@ from crabgrass.agents.background import (
 )
 
 __all__ = [
-    # Human-facing agents
+    # Human-facing agents - Ideas
     "IdeaAssistantAgent",
     "get_idea_assistant",
     "IdeaContext",
     "save_idea",
     "find_similar",
     "propose_suggestion",
+    # Human-facing agents - Objectives (V2)
+    "ObjectiveAssistantAgent",
+    "get_objective_assistant",
+    "ObjectiveContext",
+    "save_objective",
+    "list_objectives",
+    "find_similar_objectives",
+    "get_sub_objectives",
+    "retire_objective",
     # Background agent infrastructure
     "BackgroundAgent",
     "AgentOrchestrator",
