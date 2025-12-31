@@ -4,27 +4,24 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { useRole } from "@/components/layout/RoleToggle";
 import { IdeaList } from "@/components/ideas/IdeaList";
 import { ObjectivesList } from "@/components/objectives/ObjectivesList";
 import { SurfacedAlerts } from "@/components/notifications/SurfacedAlerts";
 import { api } from "@/lib/api";
-import type { IdeaListItem, User } from "@/lib/types";
+import type { IdeaListItem } from "@/lib/types";
 
 export default function HomePage() {
   const [ideas, setIdeas] = useState<IdeaListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const role = useRole();
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [ideasData, userData] = await Promise.all([
-          api.ideas.list(),
-          api.users.current(),
-        ]);
+        const ideasData = await api.ideas.list();
         setIdeas(ideasData);
-        setCurrentUser(userData);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load data");
       } finally {
@@ -34,7 +31,7 @@ export default function HomePage() {
     fetchData();
   }, []);
 
-  const isSenior = currentUser?.role === "Senior";
+  const isSenior = role === "Senior";
 
   return (
     <div className="min-h-screen flex flex-col">

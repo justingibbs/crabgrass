@@ -152,6 +152,87 @@ These ideas have full structure (Summary, Challenge, Approach, Actions) and pre-
 
 ---
 
+## V2 Demo Scenarios
+
+V2 adds Objectives, Background Agents, and Surfaced Alerts. These scenarios demonstrate the new features.
+
+### Demo Prep: Seed the Database
+
+```bash
+cd backend
+uv run python -m crabgrass.scripts.seed
+```
+
+This creates:
+- 4 sample ideas with full structure
+- 2 top-level objectives with 4 sub-objectives
+- Watches (Senior watching objectives, Sarah watching "Improve Customer Experience")
+- Links between ideas and objectives
+- 4 sample notifications
+
+### Scenario 1: Bottom-Up Discovery
+
+*ConnectionAgent discovers similar ideas across users and surfaces them.*
+
+1. Open the app and view the **Surfaced Alerts** panel on the right
+2. You should see a notification like "Found a similar idea 'Mobile App Feature Gap' (82% match)"
+3. Click the notification to navigate to the related idea
+4. This demonstrates how the ConnectionAgent automatically finds and surfaces connections
+
+### Scenario 2: Objective-Linked Idea
+
+*VP watches an objective and gets notified when ideas are linked.*
+
+1. From the home page, click on an **Objective** in the middle column
+2. Click the **Watch** button to start watching it
+3. Now create a new idea: Click **New Idea** and describe something related to the objective
+4. Link your idea to the objective (via the API or directly in the database for demo)
+5. Check the **Surfaced Alerts** - the watcher should receive a notification
+
+### Scenario 3: Nurturing a Nascent Idea
+
+*NurtureAgent nudges users about nascent ideas.*
+
+1. Create a new idea with just a title and brief summary
+2. Do NOT add a Challenge or Approach (keeping it "nascent")
+3. The NurtureAgent will detect this and suggest similar nascent ideas
+4. Check **Surfaced Alerts** for nurture nudges like "Consider adding more detail..."
+
+### Scenario 4: Objective Retirement Flow
+
+*ObjectiveAgent handles orphaned ideas when objectives retire.*
+
+1. View an objective with linked ideas
+2. Click **Retire** to retire the objective
+3. The ObjectiveAgent detects orphaned ideas
+4. Check **Surfaced Alerts** for orphan alerts or reconnection suggestions
+5. Authors of linked ideas are notified their idea is no longer linked
+
+### Scenario 5: Real-Time Notifications
+
+*Notifications appear in real-time via SSE.*
+
+1. Open the app in two browser windows
+2. In window 1, watch the **Surfaced Alerts** panel
+3. In window 2 (or via API), create an action that triggers a notification
+4. Watch the notification appear in window 1 within seconds
+5. Click **Clear all** to reset notifications for the next demo
+
+### Clearing Demo Data
+
+To reset notifications for a fresh demo:
+
+```bash
+# Via API
+curl -X DELETE http://localhost:8000/api/notifications/all
+
+# Or delete the database and re-seed
+rm data/crabgrass.duckdb
+uv run python -m crabgrass.scripts.seed
+```
+
+---
+
 ## Running Tests
 
 ### Backend Tests

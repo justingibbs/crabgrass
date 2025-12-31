@@ -2,6 +2,12 @@
 
 Creates sample ideas with full structure for demo purposes.
 Run with: uv run python -m crabgrass.scripts.seed
+
+V2 additions:
+- Objectives with parent-child hierarchy
+- Watches (users watching objectives)
+- Idea-Objective links
+- Sample notifications for demo
 """
 
 import logging
@@ -14,6 +20,10 @@ from crabgrass.concepts.summary import SummaryActions
 from crabgrass.concepts.challenge import ChallengeActions
 from crabgrass.concepts.approach import ApproachActions
 from crabgrass.concepts.coherent_action import CoherentActionActions
+from crabgrass.concepts.objective import ObjectiveActions
+from crabgrass.concepts.watch import WatchActions
+from crabgrass.concepts.idea_objective import IdeaObjectiveActions
+from crabgrass.concepts.notification import NotificationActions, NotificationType
 
 logging.basicConfig(
     level=logging.INFO,
@@ -121,6 +131,74 @@ SAMPLE_IDEAS = [
     },
 ]
 
+# V2: Sample objectives with hierarchy
+SAMPLE_OBJECTIVES = [
+    {
+        "title": "Q1 Innovation Initiative",
+        "description": (
+            "Drive innovation across the organization by identifying and "
+            "nurturing new ideas that can improve our products and processes."
+        ),
+        "author": "senior",
+        "children": [
+            {
+                "title": "Improve Customer Experience",
+                "description": "Focus on reducing friction and increasing satisfaction across all customer touchpoints.",
+            },
+            {
+                "title": "Increase Developer Productivity",
+                "description": "Streamline development workflows and reduce time spent on routine tasks.",
+            },
+        ],
+    },
+    {
+        "title": "Product Modernization",
+        "description": (
+            "Update our core product to use modern technologies and provide "
+            "better integration capabilities for customers."
+        ),
+        "author": "senior",
+        "children": [
+            {
+                "title": "API Enhancement",
+                "description": "Expand and improve our public API to enable better third-party integrations.",
+            },
+            {
+                "title": "Mobile Platform",
+                "description": "Improve our mobile experience with offline capabilities and real-time notifications.",
+            },
+        ],
+    },
+]
+
+# V2: Sample notifications for demo
+SAMPLE_NOTIFICATIONS = [
+    {
+        "user": "sarah",
+        "type": NotificationType.SIMILAR_FOUND,
+        "message": "Found a similar idea 'Mobile App Feature Gap' (82% match to your 'Customer Reporting Improvement')",
+        "source_type": "idea",
+    },
+    {
+        "user": "mike",
+        "type": NotificationType.IDEA_LINKED,
+        "message": "Your idea 'Integration with Popular Tools' was linked to objective 'API Enhancement'",
+        "source_type": "idea",
+    },
+    {
+        "user": "sarah",
+        "type": NotificationType.NURTURE_NUDGE,
+        "message": "Your idea 'Customer Reporting Improvement' is nascent - consider adding more detail to the challenge section",
+        "source_type": "idea",
+    },
+    {
+        "user": "senior",
+        "type": NotificationType.IDEA_LINKED,
+        "message": "A new idea 'Onboarding Process Streamlining' was linked to your objective 'Improve Customer Experience'",
+        "source_type": "objective",
+    },
+]
+
 
 def get_author_id(author_name: str) -> str:
     """Get author ID by name."""
@@ -129,6 +207,16 @@ def get_author_id(author_name: str) -> str:
         if user.name.lower() == author_name.lower():
             return user.id
     # Fallback to Sarah
+    return "sarah-001"
+
+
+def get_user_id(name: str) -> str:
+    """Get user ID by partial name match."""
+    users = UserActions.list_all()
+    name_lower = name.lower()
+    for user in users:
+        if name_lower in user.name.lower():
+            return user.id
     return "sarah-001"
 
 
@@ -185,6 +273,122 @@ def seed_ideas() -> None:
     logger.info("Seed data creation complete!")
 
 
+def seed_objectives() -> dict[str, str]:
+    """Create sample objectives with hierarchy.
+
+    Returns a dict mapping objective titles to IDs for linking.
+    """
+    logger.info("Creating objectives...")
+    objective_ids = {}
+
+    for obj_data in SAMPLE_OBJECTIVES:
+        author_id = get_user_id(obj_data["author"])
+
+        # Create parent objective
+        parent = ObjectiveActions.create(
+            title=obj_data["title"],
+            description=obj_data["description"],
+            author_id=author_id,
+        )
+        objective_ids[parent.title] = parent.id
+        logger.info(f"  Created objective: {parent.title}")
+
+        # Create children
+        for child_data in obj_data.get("children", []):
+            child = ObjectiveActions.create(
+                title=child_data["title"],
+                description=child_data["description"],
+                author_id=author_id,
+                parent_id=parent.id,
+            )
+            objective_ids[child.title] = child.id
+            logger.info(f"    Created child: {child.title}")
+
+    logger.info(f"Created {len(objective_ids)} objectives")
+    return objective_ids
+
+
+def seed_watches(objective_ids: dict[str, str]) -> None:
+    """Create watches for objectives."""
+    logger.info("Creating watches...")
+
+    # Senior watches all top-level objectives
+    senior_id = get_user_id("senior")
+    for title, obj_id in objective_ids.items():
+        obj = ObjectiveActions.get_by_id(obj_id)
+        if obj and not obj.parent_id:
+            WatchActions.create(
+                user_id=senior_id,
+                target_type="objective",
+                target_id=obj_id,
+            )
+            logger.info(f"  Senior watching: {title}")
+
+    # Sarah watches customer experience
+    sarah_id = get_user_id("sarah")
+    if "Improve Customer Experience" in objective_ids:
+        WatchActions.create(
+            user_id=sarah_id,
+            target_type="objective",
+            target_id=objective_ids["Improve Customer Experience"],
+        )
+        logger.info("  Sarah watching: Improve Customer Experience")
+
+    logger.info("Watches created")
+
+
+def seed_idea_objective_links(objective_ids: dict[str, str]) -> None:
+    """Link ideas to relevant objectives."""
+    logger.info("Linking ideas to objectives...")
+
+    ideas = IdeaActions.list_all()
+    idea_by_title = {i.title: i for i in ideas}
+
+    # Define links
+    links = [
+        ("Customer Reporting Improvement", "Improve Customer Experience"),
+        ("Mobile App Feature Gap", "Mobile Platform"),
+        ("Onboarding Process Streamlining", "Improve Customer Experience"),
+        ("Integration with Popular Tools", "API Enhancement"),
+    ]
+
+    for idea_title, obj_title in links:
+        idea = idea_by_title.get(idea_title)
+        obj_id = objective_ids.get(obj_title)
+        if idea and obj_id:
+            IdeaObjectiveActions.link(idea.id, obj_id)
+            logger.info(f"  Linked '{idea_title}' → '{obj_title}'")
+
+    logger.info("Idea-objective links created")
+
+
+def seed_notifications() -> None:
+    """Create sample notifications for demo."""
+    logger.info("Creating sample notifications...")
+
+    ideas = IdeaActions.list_all()
+    idea_by_title = {i.title: i for i in ideas}
+
+    for notif_data in SAMPLE_NOTIFICATIONS:
+        user_id = get_user_id(notif_data["user"])
+        # Get a source ID from an actual idea if possible
+        source_id = "demo-source"
+        for idea in ideas:
+            source_id = idea.id
+            break
+
+        NotificationActions.create(
+            user_id=user_id,
+            type=notif_data["type"],
+            message=notif_data["message"],
+            source_type=notif_data["source_type"],
+            source_id=source_id,
+        )
+        logger.info(f"  Created notification for {notif_data['user']}")
+
+    logger.info("Sample notifications created")
+
+
 def main() -> None:
     """Main entry point for seed script."""
     # Initialize database
@@ -208,9 +412,17 @@ def main() -> None:
     # Create sample ideas
     seed_ideas()
 
+    # V2: Create objectives, watches, and links
+    objective_ids = seed_objectives()
+    seed_watches(objective_ids)
+    seed_idea_objective_links(objective_ids)
+    seed_notifications()
+
     # Verify
     ideas = IdeaActions.list_all()
-    logger.info(f"Database now has {len(ideas)} ideas")
+    objectives = ObjectiveActions.list_all()
+    notifications = NotificationActions.list_all()
+    logger.info(f"Database now has {len(ideas)} ideas, {len(objectives)} objectives, {len(notifications)} notifications")
 
 
 if __name__ == "__main__":
